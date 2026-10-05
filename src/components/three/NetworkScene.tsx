@@ -14,6 +14,11 @@ const Y1 = 1.7;
 const Y2 = 3.4;
 const Y3 = 5.5;
 const ASSETS = ["Rack", "Chiller", "PDU", "UPS", "AHU", "Meter", "Camera", "Valve"] as const;
+type AssetKind = (typeof ASSETS)[number];
+const ASSET_DIMS: Record<AssetKind, V3> = { Rack: [0.5, 1.1, 0.6], Chiller: [1, 0.5, 0.7], PDU: [0.35, 0.9, 0.35], UPS: [0.8, 0.7, 0.5], AHU: [1, 0.5, 0.6], Meter: [0.4, 0.5, 0.25], Camera: [0.32, 0.22, 0.22], Valve: [0.5, 0.3, 0.3] };
+const CAMERA_Y = 1.1;
+/** Height of an asset's top surface, where its sensor stem attaches. */
+const assetTop = (kind: AssetKind) => (kind === "Camera" ? CAMERA_Y + ASSET_DIMS.Camera[1] / 2 : kind === "Chiller" ? 0.54 : ASSET_DIMS[kind][1]);
 const NODES = NETWORK_NODES;
 
 type Channel = "assets" | "sensors" | "low" | "mid" | "high" | "up" | "down" | "cage" | "core" | (typeof NODES)[number]["id"];
@@ -58,9 +63,8 @@ const ring = (r: number, n: number, y: number, offset = 0): V3[] =>
 
 function Asset({ kind, position }: { kind: (typeof ASSETS)[number]; position: V3 }) {
   const mat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#121A1F", roughness: 0.6, metalness: 0.4 }), []);
-  const dims: Record<string, V3> = { Rack: [0.5, 1.1, 0.6], Chiller: [1, 0.5, 0.7], PDU: [0.35, 0.9, 0.35], UPS: [0.8, 0.7, 0.5], AHU: [1, 0.5, 0.6], Meter: [0.4, 0.5, 0.25], Camera: [0.32, 0.22, 0.22], Valve: [0.5, 0.3, 0.3] };
-  const d = dims[kind];
-  const y = kind === "Camera" ? 1.1 : d[1] / 2;
+  const d = ASSET_DIMS[kind];
+  const y = kind === "Camera" ? CAMERA_Y : d[1] / 2;
   return (
     <group position={position}>
       {kind === "Camera" && (
@@ -95,7 +99,8 @@ export default function NetworkScene({ focus, compact = false, labels }: { focus
     const nodes = ring(2.2, 5, Y3, -Math.PI / 2);
     const coreP: V3 = [0, Y3 + 0.35, 0];
     const nearest = (p: V3) => gateways.reduce((best, gw) => (Math.hypot(gw[0] - p[0], gw[2] - p[2]) < Math.hypot(best[0] - p[0], best[2] - p[2]) ? gw : best));
-    const low = assets.map((a, i) => [[a[0], a[1] + 1.2, a[2]], sensors[i]] as [V3, V3]);
+    const tops = assets.map((a, i) => [a[0], assetTop(ASSETS[i]), a[2]] as V3);
+    const low = assets.map((_, i) => [tops[i], sensors[i]] as [V3, V3]);
     const mid = sensors.map((s) => [s, nearest(s)] as [V3, V3]);
     const high = gateways.map((gw) => [gw, coreP] as [V3, V3]);
     const hex = ring(2.2, 6, Y3, -Math.PI / 2);
@@ -111,7 +116,7 @@ export default function NetworkScene({ focus, compact = false, labels }: { focus
       const gw = nearest(s);
       const p = new THREE.CurvePath<THREE.Vector3>();
       const v = (q: V3) => new THREE.Vector3(...q);
-      p.add(new THREE.LineCurve3(v([a[0], a[1] + 1.2, a[2]]), v(s)));
+      p.add(new THREE.LineCurve3(v(tops[i]), v(s)));
       p.add(new THREE.LineCurve3(v(s), v(gw)));
       p.add(new THREE.LineCurve3(v(gw), v(coreP)));
       return p;
