@@ -50,7 +50,6 @@ export function Hero() {
         <span className="absolute right-0 top-0 h-3 w-3 border-r border-t border-steel-2" />
         <span className="absolute bottom-0 left-0 h-3 w-3 border-b border-l border-steel-2" />
         <span className="absolute bottom-0 right-0 h-3 w-3 border-b border-r border-steel-2" />
-        <span className="tech-label absolute right-5 top-3 text-[10px] text-dim">HQ 3.17°N 101.65°E · Kuala Lumpur</span>
         <Ruler ticks={80} major={10} className="absolute inset-x-16 bottom-0 opacity-50" />
       </div>
 
